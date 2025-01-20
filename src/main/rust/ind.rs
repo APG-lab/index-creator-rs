@@ -36,7 +36,7 @@ pub fn create_indices (nucleotides: &Vec<String>, index_length: u64)
     multi_prod
 }
 
-pub fn reasonable_indices (nucleotides: &Vec<String>, skip_first: bool, multi_prod: &Vec<Vec<usize>>)
+pub fn pick_indices (nucleotides: &Vec<String>, skip_first: bool, multi_prod: &Vec<Vec<usize>>)
     -> Result<Vec<Vec<usize>>, helper::PublicError>
 {
 
@@ -70,11 +70,12 @@ pub fn reasonable_indices (nucleotides: &Vec<String>, skip_first: bool, multi_pr
             let mm = iter::zip (gg.iter (), x.iter ())
                             .filter (|(y,z)| y == z)
                             .count ();
-
+            /*
             if mm == 2
             {
                 debug! ("when testing {} found gg in pick mm: {}", ni_to_seq (&nucleotides, &x), mm);
             }
+            */
             mm != 2
         })
         .collect::<Vec<_>> ();
@@ -88,6 +89,8 @@ pub fn reasonable_indices (nucleotides: &Vec<String>, skip_first: bool, multi_pr
         let mut picks: Vec<Vec<usize>> = Vec::with_capacity (reasonable.len ());
         let mut skips: Vec<Vec<usize>> = Vec::with_capacity (reasonable.len ());
         //let mut oi = 0;
+
+        debug! ("picking from {}", reasonable.len ());
 
         if skip_first
         {
@@ -186,7 +189,7 @@ pub fn reasonable_indices (nucleotides: &Vec<String>, skip_first: bool, multi_pr
 }
 
 
-pub fn reasonable_indices_florian (nucleotides: &Vec<String>, skip_first: bool, multi_prod: &Vec<Vec<usize>>)
+pub fn pick_indices_florian (nucleotides: &Vec<String>, skip_first: bool, multi_prod: &Vec<Vec<usize>>)
     -> Result<Vec<Vec<usize>>, helper::PublicError>
 {
 
@@ -237,6 +240,8 @@ pub fn reasonable_indices_florian (nucleotides: &Vec<String>, skip_first: bool, 
         let mut picks: Vec<Vec<usize>> = Vec::with_capacity (reasonable.len ());
         let mut skips: Vec<Vec<usize>> = Vec::with_capacity (reasonable.len ());
         //let mut oi = 0;
+
+        debug! ("picking from {}", reasonable.len ());
 
         if skip_first
         {

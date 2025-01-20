@@ -61,13 +61,13 @@ fn main () {
         Commands::Create { index_length, skip_first } => {
             debug! ("create");
             let all = ind::create_indices (&nucleotides, index_length);
-            let picks = ind::reasonable_indices (&nucleotides, skip_first, &all).expect ("Failed to pick indices");
+            let picks = ind::pick_indices (&nucleotides, skip_first, &all).expect ("Failed to pick indices");
             ind::output_indices (&nucleotides, index_length, &picks);
         },
         Commands::CreateFlorian { index_length, skip_first } => {
             debug! ("create");
             let all = ind::create_indices (&nucleotides, index_length);
-            let picks = ind::reasonable_indices_florian (&nucleotides, skip_first, &all).expect ("Failed to pick indices");
+            let picks = ind::pick_indices_florian (&nucleotides, skip_first, &all).expect ("Failed to pick indices");
             ind::output_indices (&nucleotides, index_length, &picks);
         },
         Commands::Filter { cutoff, index_file_paths } => {
