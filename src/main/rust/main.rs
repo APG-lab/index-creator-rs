@@ -17,6 +17,15 @@ enum Commands {
         #[arg(long, default_value_t = true)]
         skip_first: std::primitive::bool
     },
+    CreateFlorian {
+        #[clap(value_parser)]
+        index_length: u64,
+        // We explicitly use std::primitive::bool to prevent clap
+        // treating this as a flag. Now it requires a value you
+        // can supply false
+        #[arg(long, default_value_t = true)]
+        skip_first: std::primitive::bool
+    },
     Filter {
         #[arg(long, default_value_t = 2)]
         cutoff: usize,
@@ -51,7 +60,15 @@ fn main () {
     {
         Commands::Create { index_length, skip_first } => {
             debug! ("create");
-            ind::create_indices (nucleotides, index_length, skip_first).expect ("Failed to create indices");
+            let all = ind::create_indices (&nucleotides, index_length);
+            let picks = ind::reasonable_indices (&nucleotides, skip_first, &all).expect ("Failed to pick indices");
+            ind::output_indices (&nucleotides, index_length, &picks);
+        },
+        Commands::CreateFlorian { index_length, skip_first } => {
+            debug! ("create");
+            let all = ind::create_indices (&nucleotides, index_length);
+            let picks = ind::reasonable_indices_florian (&nucleotides, skip_first, &all).expect ("Failed to pick indices");
+            ind::output_indices (&nucleotides, index_length, &picks);
         },
         Commands::Filter { cutoff, index_file_paths } => {
             debug! ("ifp: {:?}", index_file_paths);

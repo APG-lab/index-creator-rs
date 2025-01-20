@@ -20,8 +20,8 @@ pub fn seq_to_ni (nucleotides: &Vec<String>, seq: &str)
     seq.bytes ().map (|x| { let xb = [x];let xs = str::from_utf8 (&xb).unwrap ();nucleotides.iter ().position (|y| { y == xs }).unwrap () }).collect::<Vec<_>> ()
 }
 
-pub fn create_indices (nucleotides: Vec<String>, index_length: u64, skip_first: bool)
-    -> Result<(), helper::PublicError>
+pub fn create_indices (nucleotides: &Vec<String>, index_length: u64)
+    -> Vec<Vec<usize>>
 {
     let multi_prod = (0..index_length).map (|_| 0..nucleotides.len ())
         .multi_cartesian_product()
@@ -33,6 +33,162 @@ pub fn create_indices (nucleotides: Vec<String>, index_length: u64, skip_first: 
         debug! ("p: {:?} {}", p, ni_to_seq (&nucleotides, &p));
     }
     */
+    multi_prod
+}
+
+pub fn reasonable_indices (nucleotides: &Vec<String>, skip_first: bool, multi_prod: &Vec<Vec<usize>>)
+    -> Result<Vec<Vec<usize>>, helper::PublicError>
+{
+
+    let mut not_liked = (0..nucleotides.len ()).map (|i| vec![i,i,i]).collect::<Vec<_>> ();
+    not_liked.push (seq_to_ni (&nucleotides, "ACA"));
+    not_liked.push (seq_to_ni (&nucleotides, "CAC"));
+    not_liked.push (seq_to_ni (&nucleotides, "GTG"));
+    not_liked.push (seq_to_ni (&nucleotides, "TGT"));
+
+    for p in &not_liked
+    {
+        debug! ("not_liked: {:?}", p);
+    }
+
+    let gg = seq_to_ni (&nucleotides, "GG");
+
+    let reasonable = multi_prod.iter ()
+        .filter (|x| {
+            !x.windows (3).any (|y| not_liked.contains (&y.to_vec ()))
+        })
+        .filter (|&x| {
+            (0..nucleotides.len ()).map (|y| {
+                    x.iter ().filter (|&z| z == &y ).count ()
+                })
+                .filter (|&y| {
+                    y == 0usize
+                })
+                .count () < 2
+        })
+        .filter (|&x| {
+            let mm = iter::zip (gg.iter (), x.iter ())
+                            .filter (|(y,z)| y == z)
+                            .count ();
+
+            if mm == 2
+            {
+                debug! ("when testing {} found gg in pick mm: {}", ni_to_seq (&nucleotides, &x), mm);
+            }
+            mm != 2
+        })
+        .collect::<Vec<_>> ();
+
+    if reasonable.is_empty ()
+    {
+        Err (helper::PublicError::ApplicationError (String::from ("No reasonable indices to pick from")))
+    }
+    else
+    {
+        let mut picks: Vec<Vec<usize>> = Vec::with_capacity (reasonable.len ());
+        let mut skips: Vec<Vec<usize>> = Vec::with_capacity (reasonable.len ());
+        //let mut oi = 0;
+
+        if skip_first
+        {
+            for p in &reasonable
+            {
+                //oi += 1;
+                //debug! ("pr: {:?} {}", p, ni_to_seq (&nucleotides, &p));
+                let search_pick = picks.iter ()
+                    .rev ()
+                    .find (|pick| {
+                        let mm = iter::zip (pick.iter (), p.iter ())
+                            .filter (|(x,y)| x != y)
+                            .count ();
+                        /*
+                        if mm <= 2
+                        {
+                            debug! ("when searching for {} found hit {} in pick mm: {}", ni_to_seq (&nucleotides, &p), ni_to_seq (&nucleotides, &pick), mm);
+                        }
+                        */
+                        mm <= 2
+                    });
+
+                let search_skip = skips.iter ()
+                    .find (|pick| {
+                        let mm = iter::zip (pick.iter (), p.iter ())
+                            .filter (|(x,y)| x != y)
+                            .count ();
+                        /*
+                        if mm <= 1
+                        {
+                            debug! ("when searching for {} found hit {} in skip mm: {}", ni_to_seq (&nucleotides, &p), ni_to_seq (&nucleotides, &pick), mm);
+                        }
+                        */
+                        mm <= 1
+                    });
+
+                if search_pick.is_none () && search_skip.is_none ()
+                {
+                    let psf = p.iter ()
+                        .skip (1)
+                        .copied ()
+                        .chain (seq_to_ni (&nucleotides, "A"))
+                        .collect::<Vec<_>> ();
+
+                    let search_psf = skips.iter ()
+                        .chain (picks.iter ().rev ())
+                        .find (|pick| {
+                            let mm = iter::zip (pick.iter (), psf.iter ())
+                                .filter (|(x,y)| x != y)
+                                .count ();
+                            /*
+                            if mm <= 1
+                            {
+                                debug! ("when searching for {} found hit {} in psf mm: {}", ni_to_seq (&nucleotides, &psf), ni_to_seq (&nucleotides, &pick), mm);
+                            }
+                            */
+                            mm <= 1
+                        });
+                    if search_psf.is_none ()
+                    {
+                        skips.push (psf);
+                        picks.push ((*p).to_vec ());
+                    }
+                }
+            }
+        }
+        else
+        {
+            for p in &reasonable
+            {
+                //oi += 1;
+                //debug! ("pr: {:?} {}", p, ni_to_seq (&nucleotides, &p));
+                let search_pick = picks.iter ()
+                    .rev ()
+                    .find (|pick| {
+                        let mm = iter::zip (pick.iter (), p.iter ())
+                            .filter (|(x,y)| x != y)
+                            .count ();
+                        /*
+                        if mm <= 2
+                        {
+                            debug! ("when searching for {} found hit {} in pick mm: {}", ni_to_seq (&nucleotides, &p), ni_to_seq (&nucleotides, &pick), mm);
+                        }
+                        */
+                        mm <= 2
+                    });
+
+                if search_pick.is_none ()
+                {
+                    picks.push ((*p).to_vec ());
+                }
+            }
+        }
+        Ok (picks)
+    }
+}
+
+
+pub fn reasonable_indices_florian (nucleotides: &Vec<String>, skip_first: bool, multi_prod: &Vec<Vec<usize>>)
+    -> Result<Vec<Vec<usize>>, helper::PublicError>
+{
 
     let mut not_liked = (0..nucleotides.len ()).map (|i| vec![i,i,i]).collect::<Vec<_>> ();
     not_liked.push (seq_to_ni (&nucleotides, "ACA"));
@@ -70,11 +226,11 @@ pub fn create_indices (nucleotides: Vec<String>, index_length: u64, skip_first: 
         seq_to_ni (&nucleotides, "AATTAAGG"),
         seq_to_ni (&nucleotides, "ACCAGGCA"),
     ];
-*/
+    */
 
     if reasonable.is_empty ()
     {
-        eprintln! ("No reasonable indices to pick from");
+        Err (helper::PublicError::ApplicationError (String::from ("No reasonable indices to pick from")))
     }
     else
     {
@@ -174,14 +330,16 @@ pub fn create_indices (nucleotides: Vec<String>, index_length: u64, skip_first: 
                 }
             }
         }
-
-        for (i,p) in picks.iter ().enumerate ()
-        {
-            println! ("{}\tindex_{}nt_{}", ni_to_seq (&nucleotides, p), index_length, i+1);
-        }
+        Ok (picks)
     }
+}
 
-    Ok (())
+pub fn output_indices (nucleotides: &Vec<String>, index_length: u64, picks: &Vec<Vec<usize>>)
+{
+    for (i,p) in picks.iter ().enumerate ()
+    {
+        println! ("{}\tindex_{}nt_{}", ni_to_seq (&nucleotides, p), index_length, i+1);
+    }
 }
 
 pub fn filter_indices (nucleotides: Vec<String>, index_file_paths: Vec<String>, cutoff: usize)
