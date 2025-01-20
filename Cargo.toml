@@ -1,0 +1,19 @@
+[package]
+name = "index-creator"
+version = "0.0.1"
+rust-version = "1.61.0"
+edition = "2021"
+
+[[bin]]
+name = "index-creator"
+path = "src/main/rust/main.rs"
+
+[dependencies]
+anyhow = "1.0.66"
+bio = "1"
+clap = { version = "4.0", features = ["derive"]}
+env_logger = "0.9"
+itertools = "0.10"
+log = "0.4"
+thiserror = "1.0"
+
