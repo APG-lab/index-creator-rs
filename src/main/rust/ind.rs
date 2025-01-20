@@ -8,6 +8,16 @@ use std::io;
 use std::iter;
 use std::str;
 
+/// Implementation is inspired by https://doi.org/10.1101/082214
+pub fn revcomp (seq: String)
+    -> String
+{
+    seq.bytes ()
+        .rev ()
+        .map (|c| { let xb = [if c & 2 != 0 { c ^ 4 } else { c ^ 21 }];str::from_utf8 (&xb).unwrap ().to_owned () })
+        .collect::<String> ()
+}
+
 pub fn ni_to_seq (nucleotides: &Vec<String>, ni: &Vec<usize>)
     -> String
 {
@@ -36,7 +46,7 @@ pub fn create_indices (nucleotides: &Vec<String>, index_length: u64)
     multi_prod
 }
 
-pub fn pick_indices (nucleotides: &Vec<String>, skip_first: bool, multi_prod: &Vec<Vec<usize>>)
+pub fn pick_indices (adapter_three_prime: String, nucleotides: &Vec<String>, skip_first: bool, multi_prod: &Vec<Vec<usize>>)
     -> Result<Vec<Vec<usize>>, helper::PublicError>
 {
 
@@ -94,6 +104,9 @@ pub fn pick_indices (nucleotides: &Vec<String>, skip_first: bool, multi_prod: &V
 
         if skip_first
         {
+            let adapter_nucleotide = revcomp (adapter_three_prime).chars ().take (1).collect::<String> ();
+            debug! ("adapter_nucleotide: '{}'", adapter_nucleotide);
+
             for p in &reasonable
             {
                 //oi += 1;
@@ -132,7 +145,7 @@ pub fn pick_indices (nucleotides: &Vec<String>, skip_first: bool, multi_prod: &V
                     let psf = p.iter ()
                         .skip (1)
                         .copied ()
-                        .chain (seq_to_ni (&nucleotides, "A"))
+                        .chain (seq_to_ni (&nucleotides, &adapter_nucleotide))
                         .collect::<Vec<_>> ();
 
                     let search_psf = skips.iter ()
@@ -189,7 +202,7 @@ pub fn pick_indices (nucleotides: &Vec<String>, skip_first: bool, multi_prod: &V
 }
 
 
-pub fn pick_indices_florian (nucleotides: &Vec<String>, skip_first: bool, multi_prod: &Vec<Vec<usize>>)
+pub fn pick_indices_florian (adapter_three_prime: String, nucleotides: &Vec<String>, skip_first: bool, multi_prod: &Vec<Vec<usize>>)
     -> Result<Vec<Vec<usize>>, helper::PublicError>
 {
 
@@ -245,6 +258,9 @@ pub fn pick_indices_florian (nucleotides: &Vec<String>, skip_first: bool, multi_
 
         if skip_first
         {
+            let adapter_nucleotide = revcomp (adapter_three_prime).chars ().take (1).collect::<String> ();
+            debug! ("adapter_nucleotide: '{}'", adapter_nucleotide);
+
             for p in &reasonable
             {
                 //oi += 1;
@@ -283,7 +299,7 @@ pub fn pick_indices_florian (nucleotides: &Vec<String>, skip_first: bool, multi_
                     let psf = p.iter ()
                         .skip (1)
                         .copied ()
-                        .chain (seq_to_ni (&nucleotides, "A"))
+                        .chain (seq_to_ni (&nucleotides, &adapter_nucleotide))
                         .collect::<Vec<_>> ();
 
                     let search_psf = skips.iter ()
@@ -339,11 +355,12 @@ pub fn pick_indices_florian (nucleotides: &Vec<String>, skip_first: bool, multi_
     }
 }
 
-pub fn output_indices (nucleotides: &Vec<String>, index_length: u64, picks: &Vec<Vec<usize>>)
+pub fn output_indices (adapter_five_prime: String, adapter_three_prime: String, nucleotides: &Vec<String>, index_length: u64, picks: &Vec<Vec<usize>>)
 {
     for (i,p) in picks.iter ().enumerate ()
     {
-        println! ("{}\tindex_{}nt_{}", ni_to_seq (&nucleotides, p), index_length, i+1);
+        let rc = revcomp (ni_to_seq (&nucleotides, p)).to_ascii_lowercase ();
+        println! ("{}\tindex_{}nt_{}\t{}{}{}", ni_to_seq (&nucleotides, p), index_length, i+1, adapter_three_prime, rc, adapter_five_prime);
     }
 }
 

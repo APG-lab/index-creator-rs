@@ -1,6 +1,7 @@
 
 use clap::{Parser, Subcommand};
 use log::debug;
+use std::str;
 
 mod file;
 mod helper;
@@ -10,6 +11,10 @@ mod ind;
 enum Commands {
     Create {
         #[clap(value_parser)]
+        adapter_five_prime: String,
+        #[clap(value_parser)]
+        adapter_three_prime: String,
+        #[clap(value_parser)]
         index_length: u64,
         // We explicitly use std::primitive::bool to prevent clap
         // treating this as a flag. Now it requires a value you
@@ -18,6 +23,10 @@ enum Commands {
         skip_first: std::primitive::bool
     },
     CreateFlorian {
+        #[clap(value_parser)]
+        adapter_five_prime: String,
+        #[clap(value_parser)]
+        adapter_three_prime: String,
         #[clap(value_parser)]
         index_length: u64,
         // We explicitly use std::primitive::bool to prevent clap
@@ -58,17 +67,33 @@ fn main () {
 
     match args.command
     {
-        Commands::Create { index_length, skip_first } => {
+        Commands::Create { adapter_five_prime, adapter_three_prime, index_length, skip_first } => {
             debug! ("create");
-            let all = ind::create_indices (&nucleotides, index_length);
-            let picks = ind::pick_indices (&nucleotides, skip_first, &all).expect ("Failed to pick indices");
-            ind::output_indices (&nucleotides, index_length, &picks);
+            if adapter_five_prime.bytes ().all (|x| { let xb = [x];nucleotides.contains (&str::from_utf8 (&xb).unwrap ().to_owned ()) }) &&
+                adapter_three_prime.bytes ().all (|x| { let xb = [x];nucleotides.contains (&str::from_utf8 (&xb).unwrap ().to_owned ()) })
+            {
+                let all = ind::create_indices (&nucleotides, index_length);
+                let picks = ind::pick_indices (adapter_three_prime.clone (), &nucleotides, skip_first, &all).expect ("Failed to pick indices");
+                ind::output_indices (adapter_five_prime, adapter_three_prime, &nucleotides, index_length, &picks);
+            }
+            else
+            {
+                eprintln! ("Adapter five prime or adapter three prime contains chars not found in nucleotides");
+            }
         },
-        Commands::CreateFlorian { index_length, skip_first } => {
+        Commands::CreateFlorian { adapter_five_prime, adapter_three_prime, index_length, skip_first } => {
             debug! ("create");
-            let all = ind::create_indices (&nucleotides, index_length);
-            let picks = ind::pick_indices_florian (&nucleotides, skip_first, &all).expect ("Failed to pick indices");
-            ind::output_indices (&nucleotides, index_length, &picks);
+            if adapter_five_prime.bytes ().all (|x| { let xb = [x];nucleotides.contains (&str::from_utf8 (&xb).unwrap ().to_owned ()) }) &&
+                adapter_three_prime.bytes ().all (|x| { let xb = [x];nucleotides.contains (&str::from_utf8 (&xb).unwrap ().to_owned ()) })
+            {
+                let all = ind::create_indices (&nucleotides, index_length);
+                let picks = ind::pick_indices_florian (adapter_three_prime.clone (), &nucleotides, skip_first, &all).expect ("Failed to pick indices");
+                ind::output_indices (adapter_five_prime, adapter_three_prime, &nucleotides, index_length, &picks);
+            }
+            else
+            {
+                eprintln! ("Adapter five prime or adapter three prime contains chars not found in nucleotides");
+            }
         },
         Commands::Filter { cutoff, index_file_paths } => {
             debug! ("ifp: {:?}", index_file_paths);
